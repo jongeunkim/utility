@@ -1,9 +1,9 @@
-!/bin/bash
+#!/bin/bash
 
 ##### Parameters  
-problist=runbatch_list.sh
-nodelist=( 0 1 2 3 4 5 6 7 )
-# timelimit=5
+problist=problist.sh
+# nodelist=( 0 1 3 5 6 7 )
+nodelist=($(seq 0 1 7))
 
 
 declare -i nProcessor
@@ -43,13 +43,13 @@ function findFreeProc ()
     started="no"
     for (( i=0 ; i < nProcessor ; ++i )); do
 		if (( procid[$i] == 0 )); then
-			echo Running on ${processor[i]} at time date
-			eval taskset -c $i $prob & # Execute string prob
+			echo "Line ${nextprob} is running on ${processor[i]}"
+			eval taskset -c ${processor[i]} $prob & # Execute string prob
 			procid[$i]=$!
 			let ++nextprob
 			started="yes"
-
-			print_job_assignment
+			sleep 5
+			# print_job_assignment
 			return
 		fi
     done
@@ -74,14 +74,23 @@ while (( $nextprob <= `grep -v '^#' $problist | wc -l` )); do
     checkRunningProcesses
     findFreeProc
     if [[ $started == "no" ]]; then
-		sleep 5
+		sleep 2
     fi
 	# echo procid
 done
 
 ##### Once the last job is executed, then check until there is no job running
 nRunning=1 # initial value to begin the while loop
+nRunning_prev=$nProcessor
 while (( $nRunning != 0 )); do
     sleep 2
     checkRunningProcesses
+
+	if [[ $nRunning < $nRunning_prev ]]; then
+		nRunning_prev=$nRunning
+		echo "$nRunning jobs are running"
+    fi
 done
+
+echo "all done"
+
